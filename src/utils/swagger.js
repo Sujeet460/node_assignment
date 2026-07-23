@@ -261,10 +261,23 @@ import swaggerConfig from "../config/swagger.js";
  * 
  * /api/users:
  *   get:
- *     summary: Retrieve list of all users [Admin Only]
+ *     summary: Retrieve list of all users with pagination [Admin Only]
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of users per page
  *     responses:
  *       200:
  *         description: Successfully retrieved list
@@ -282,6 +295,15 @@ import swaggerConfig from "../config/swagger.js";
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/User'
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page: { type: integer, example: 1 }
+ *                         limit: { type: integer, example: 10 }
+ *                         totalPages: { type: integer, example: 3 }
+ *                         totalItems: { type: integer, example: 25 }
+ *                         hasNextPage: { type: boolean, example: true }
+ *                         hasPrevPage: { type: boolean, example: false }
  *       401:
  *         description: Unauthorized
  *       403:
@@ -679,6 +701,104 @@ import swaggerConfig from "../config/swagger.js";
  *         description: Completion statistics calculated successfully
  *       401:
  *         description: Unauthorized
+ * 
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           example: "64b0f3e2fc13ae2c48000001"
+ *         username:
+ *           type: string
+ *           example: "john_doe"
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: "john@example.com"
+ *         role:
+ *           type: string
+ *           enum: [admin, manager, user]
+ *           example: "user"
+ *         isVerified:
+ *           type: boolean
+ *           example: true
+ *         team:
+ *           type: string
+ *           nullable: true
+ *           example: "64b0f3e2fc13ae2c48000002"
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ * 
+ *     Team:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           example: "64b0f3e2fc13ae2c48000002"
+ *         name:
+ *           type: string
+ *           example: "Engineering"
+ *         manager:
+ *           type: object
+ *           properties:
+ *             id: { type: string, example: "64b0f3e2fc13ae2c48000001" }
+ *             username: { type: string, example: "manager_bob" }
+ *             email: { type: string, example: "bob@example.com" }
+ *         members:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               id: { type: string, example: "64b0f3e2fc13ae2c48000003" }
+ *               username: { type: string, example: "developer_alice" }
+ *               email: { type: string, example: "alice@example.com" }
+ * 
+ *     Task:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           example: "64b0f3e2fc13ae2c48000004"
+ *         title:
+ *           type: string
+ *           example: "Design Database Schema"
+ *         description:
+ *           type: string
+ *           example: "Design relational schema and indexes for task scheduling"
+ *         dueDate:
+ *           type: string
+ *           format: date-time
+ *         priority:
+ *           type: string
+ *           enum: [low, medium, high]
+ *           example: "high"
+ *         status:
+ *           type: string
+ *           enum: [pending, in_progress, completed]
+ *           example: "pending"
+ *         assignedTo:
+ *           type: object
+ *           nullable: true
+ *           properties:
+ *             id: { type: string }
+ *             username: { type: string }
+ *         createdBy:
+ *           type: object
+ *           properties:
+ *             id: { type: string }
+ *             username: { type: string }
+ *         team:
+ *           type: object
+ *           nullable: true
+ *           properties:
+ *             id: { type: string }
+ *             name: { type: string }
  */
 
 const swaggerSpec = swaggerJSDoc(swaggerConfig);

@@ -3,11 +3,11 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { HTTP_STATUS } from "../constants/httpStatus.js";
 
 const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await userService.getAllUsers();
+  const result = await userService.getAllUsers(req.query);
   return res.status(HTTP_STATUS.OK).json({
     success: true,
     message: "Users retrieved successfully",
-    data: { users },
+    data: result,
   });
 });
 

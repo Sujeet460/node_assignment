@@ -31,8 +31,13 @@ const update = async (id, updateData, session = null) => {
   );
 };
 
-const findAll = async () => {
-  return await User.find().populate("team", "name");
+const findAndCount = async (skip, limit) => {
+  const users = await User.find()
+    .populate("team", "name")
+    .skip(skip)
+    .limit(limit);
+  const total = await User.countDocuments();
+  return { users, total };
 };
 
 export default {
@@ -41,5 +46,5 @@ export default {
   findByUsernameOrEmail,
   create,
   update,
-  findAll,
+  findAndCount,
 };

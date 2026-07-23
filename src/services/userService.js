@@ -7,10 +7,16 @@ import { MESSAGES } from "../constants/messages.js";
 import { ROLES } from "../constants/roles.js";
 import mongoose from "mongoose";
 import * as cacheService from "./cacheService.js";
+import { getPaginationOptions, formatPaginationResponse } from "../utils/pagination.js";
 
-const getAllUsers = async () => {
-  const users = await userRepository.findAll();
-  return userListDTO(users);
+const getAllUsers = async (queryParams) => {
+  const { page, limit, skip } = getPaginationOptions(queryParams);
+  const { users, total } = await userRepository.findAndCount(skip, limit);
+
+  return {
+    users: userListDTO(users),
+    pagination: formatPaginationResponse(total, page, limit),
+  };
 };
 
 const getUserById = async (id, currentUser) => {

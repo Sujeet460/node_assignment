@@ -35,7 +35,7 @@ describe("Task Management API Integration Tests", () => {
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(process.env.MONGODB_URI);
     }
-  }, 20000);
+  }, 30000);
 
   afterAll(async () => {
     // Clean up test documents

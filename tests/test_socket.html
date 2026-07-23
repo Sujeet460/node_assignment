@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Management WebSocket Client</title>
+    <!-- Google Font: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
+    <!-- Load Socket.io Client directly from the running server (offline friendly & version matched) -->
+    <script src="/socket.io/socket.io.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #0a0e17;
+            --bg-panel: #121824;
+            --accent-blue: #4A90E2;
+            --accent-purple: #8B5FBF;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border-color: #1e293b;
+            --success-green: #10b981;
+            --error-red: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        .panel {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        input {
+            background-color: #1a2234;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            margin-top: 0.5rem;
+            width: 100%;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button.disconnect {
+            background: var(--error-red);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 9999px;
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--error-red);
+            align-self: flex-start;
+            margin-top: 0.5rem;
+        }
+
+        .status-badge.connected {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success-green);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+        }
+
+        .event-log-container {
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+        }
+
+        .event-log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .clear-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            width: auto;
+            font-size: 0.8rem;
+            padding: 0.3rem 0.75rem;
+            margin-top: 0;
+        }
+
+        .clear-btn:hover {
+            background-color: #1a2234;
+            color: var(--text-main);
+        }
+
+        .event-log {
+            background-color: #0d121f;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .log-entry {
+            border-left: 3px solid var(--border-color);
+            padding-left: 0.75rem;
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
+        }
+
+        .log-entry.info {
+            border-left-color: var(--accent-blue);
+        }
+
+        .log-entry.event {
+            border-left-color: var(--accent-purple);
+            background-color: rgba(139, 95, 191, 0.05);
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+
+        .log-entry.error {
+            border-left-color: var(--error-red);
+            background-color: rgba(239, 68, 68, 0.05);
+            color: #fca5a5;
+        }
+
+        .log-time {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .log-message {
+            font-weight: 500;
+        }
+
+        pre {
+            margin-top: 0.5rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            background-color: #07090f;
+            padding: 0.5rem;
+            border-radius: 4px;
+            color: #38bdf8;
+            border: 1px solid #1e293b;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.15rem 0.4rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 4px;
+            background-color: #334155;
+            color: #e2e8f0;
+            margin-right: 0.25rem;
+        }
+
+        .badge.create {
+            background-color: #065f46;
+            color: #a7f3d0;
+        }
+
+        .badge.update {
+            background-color: #1e3a8a;
+            color: #bfdbfe;
+        }
+
+        .badge.delete {
+            background-color: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        .badge.assign {
+            background-color: #701a75;
+            color: #f5d0fe;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Task Management WebSocket Monitor</h1>
+            <p class="subtitle">Authenticate and view real-time task notifications from Socket.io</p>
+        </header>
+
+        <div class="grid-2">
+            <!-- Connection configuration panel -->
+            <div class="panel">
+                <h2
+                    style="font-size: 1.25rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                    Connection Settings</h2>
+
+                <div class="form-group">
+                    <label for="serverUrl">Socket Server URL</label>
+                    <input type="text" id="serverUrl" value="http://localhost:4000">
+                </div>
+
+                <div class="form-group">
+                    <label for="jwtToken">JWT Token (Bearer)</label>
+                    <input type="text" id="jwtToken" placeholder="Paste your authentication access token here">
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
+                    <button id="connectBtn">Connect to WebSocket</button>
+                    <button id="disconnectBtn" class="disconnect" style="display: none;">Disconnect</button>
+                    <div id="connectionStatus" class="status-badge">
+                        <span class="status-dot"></span>
+                        <span id="statusText">Disconnected</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Helper / Guide Panel -->
+            <div class="panel" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <h2
+                        style="font-size: 1.25rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                        Validation Guide</h2>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.75rem;">
+                        <strong>Step 1:</strong> Start your Node.js API server (`npm start` or `npm run dev`).
+                    </p>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.75rem;">
+                        <strong>Step 2:</strong> Obtain a valid JWT token by logging in via POST `/api/auth/login` (or
+                        using the Swagger UI at `/api-docs`).
+                    </p>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.75rem;">
+                        <strong>Step 3:</strong> Paste the token into the JWT input on the left and click
+                        <strong>Connect</strong>.
+                    </p>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.75rem;">
+                        <strong>Step 4:</strong> Trigger a task update (create, update status, re-assign, or delete)
+                        using Swagger UI, Postman, or `npm run test`.
+                    </p>
+                </div>
+                <div
+                    style="background-color: #1a2234; padding: 0.75rem; border-radius: 8px; border: 1px dashed var(--border-color); margin-top: 1rem;">
+                    <p style="font-size: 0.8rem; color: var(--accent-blue); font-weight: 500;">
+                        Note: The socket listener authenticates tokens using the JWT secret. Connecting joins you to
+                        your user-specific room (`user_id`) and team room (`team_id`) automatically.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event stream panel -->
+        <div class="panel event-log-container">
+            <div class="event-log-header">
+                <h2 style="font-size: 1.25rem;">Real-time Event Stream</h2>
+                <button id="clearBtn" class="clear-btn">Clear Log</button>
+            </div>
+            <div id="eventLog" class="event-log">
+                <div class="log-entry info">
+                    <div class="log-time">System Ready</div>
+                    <div class="log-message">Awaiting connection. Configure settings above and click Connect.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const serverUrlInput = document.getElementById('serverUrl');
+        const jwtTokenInput = document.getElementById('jwtToken');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const statusText = document.getElementById('statusText');
+        const eventLog = document.getElementById('eventLog');
+        const clearBtn = document.getElementById('clearBtn');
+
+        let socket = null;
+
+        function addLog(type, message, detailsObj = null) {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+
+            const time = document.createElement('div');
+            time.className = 'log-time';
+            time.textContent = new Date().toLocaleTimeString();
+            entry.appendChild(time);
+
+            const msg = document.createElement('div');
+            msg.className = 'log-message';
+            msg.innerHTML = message;
+            entry.appendChild(msg);
+
+            if (detailsObj) {
+                const pre = document.createElement('pre');
+                pre.textContent = JSON.stringify(detailsObj, null, 2);
+                entry.appendChild(pre);
+            }
+
+            eventLog.appendChild(entry);
+            eventLog.scrollTop = eventLog.scrollHeight;
+        }
+
+        clearBtn.addEventListener('click', () => {
+            eventLog.innerHTML = '';
+            addLog('info', 'Event log cleared.');
+        });
+
+        connectBtn.addEventListener('click', () => {
+            const serverUrl = serverUrlInput.value.trim();
+            const token = jwtTokenInput.value.trim();
+
+            if (!token) {
+                alert('Please paste a valid JWT access token to authenticate.');
+                return;
+            }
+
+            addLog('info', `Connecting to WebSocket server at ${serverUrl}...`);
+
+            // Determine if we should connect using the current window origin (bypasses CORS & hostname mismatch)
+            const isLocal = !serverUrl || serverUrl === window.location.origin || serverUrl.includes(window.location.host);
+            const connectionTarget = isLocal ? undefined : serverUrl;
+
+            // Initialize connection with token authentication
+            socket = io(connectionTarget, {
+                auth: { token: token },
+                transports: ['websocket', 'polling']
+            });
+
+            socket.on('connect', () => {
+                statusText.textContent = 'Connected';
+                connectionStatus.className = 'status-badge connected';
+                connectBtn.style.display = 'none';
+                disconnectBtn.style.display = 'block';
+                addLog('info', 'WebSocket connected successfully!');
+            });
+
+            socket.on('connect_error', (err) => {
+                addLog('error', `Connection error: ${err.message}`);
+                socket.disconnect();
+            });
+
+            // Listen for task changes
+            socket.on('task_changed', (data) => {
+                const actionBadge = `<span class="badge ${data.action}">${data.action.toUpperCase()}</span>`;
+                const taskTitle = data.task ? `<strong>${data.task.title}</strong>` : `ID: ${data.taskId}`;
+                addLog('event', `Event received: ${actionBadge} Task: ${taskTitle}`, data);
+            });
+
+            socket.on('disconnect', (reason) => {
+                statusText.textContent = 'Disconnected';
+                connectionStatus.className = 'status-badge';
+                connectBtn.style.display = 'block';
+                disconnectBtn.style.display = 'none';
+                addLog('info', `WebSocket disconnected (Reason: ${reason})`);
+            });
+        });
+
+        disconnectBtn.addEventListener('click', () => {
+            if (socket) {
+                socket.disconnect();
+            }
+        });
+
+        // Auto-fill Server URL and Token from URL query parameters if available
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const tokenParam = params.get('token');
+            if (tokenParam) {
+                jwtTokenInput.value = tokenParam;
+                addLog('info', 'Auto-filled JWT token from query parameter.');
+            }
+            if (window.location.origin && window.location.origin.startsWith('http')) {
+                serverUrlInput.value = window.location.origin;
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import hpp from "hpp";
+import path from "path";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./utils/swagger.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -33,15 +34,23 @@ const mongoSanitizeMiddleware = (req, res, next) => {
 const app = express();
 
 // Security and optimization middlewares
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false
+}));
 app.use(cors());
 app.use(express.json());
 app.use(mongoSanitizeMiddleware); // Prevent MongoDB injection attacks safely
 app.use(hpp());                  // Prevent HTTP Parameter Pollution
 app.use(compression());          // Compress responses
 
+// Serve socket testing dashboard from the same origin to prevent browser file:// sandbox blocks
+app.get("/test-socket", (req, res) => {
+  res.sendFile(path.resolve("tests/test_socket.html"));
+});
+
 // API Documentation Route
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 
 // Mount Application Routes
 app.use("/api/auth", authRoutes);

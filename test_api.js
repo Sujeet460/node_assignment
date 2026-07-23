@@ -35,8 +35,8 @@ const runTests = async () => {
     });
     
     const adminLogin = await adminLoginRes.json();
-    if (adminLoginRes.status === 200 && adminLogin.token) {
-      adminToken = adminLogin.token;
+    if (adminLoginRes.status === 200 && adminLogin.data && adminLogin.data.accessToken) {
+      adminToken = adminLogin.data.accessToken;
       logTest("Admin Login", true);
     } else {
       logTest("Admin Login", false, JSON.stringify(adminLogin));
@@ -59,25 +59,28 @@ const runTests = async () => {
     });
     const managerReg = await managerRegRes.json();
     if (managerRegRes.status === 201) {
-      managerId = managerReg.user._id;
+      managerId = managerReg.data.user.id;
       logTest("Register Manager User", true);
     } else {
       logTest("Register Manager User", false, JSON.stringify(managerReg));
     }
 
-    // 3. Register a Standard User (Public Register)
+    // 3. Register a Standard User via Admin (pre-verified for client flow)
     const userRegRes = await fetch(`${BASE_URL}/auth/register`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${adminToken}`
+      },
       body: JSON.stringify({
         username: userUsername,
         email: userEmail,
-        password: "UserPassword@123" // will default to role: 'user'
+        password: "UserPassword@123"
       })
     });
     const userReg = await userRegRes.json();
     if (userRegRes.status === 201) {
-      userId = userReg.user._id;
+      userId = userReg.data.user.id;
       logTest("Register Standard User", true);
     } else {
       logTest("Register Standard User", false, JSON.stringify(userReg));
@@ -111,7 +114,7 @@ const runTests = async () => {
     });
     const managerLogin = await managerLoginRes.json();
     if (managerLoginRes.status === 200) {
-      managerToken = managerLogin.token;
+      managerToken = managerLogin.data.accessToken;
       logTest("Manager Login", true);
     } else {
       logTest("Manager Login", false, JSON.stringify(managerLogin));
@@ -128,7 +131,7 @@ const runTests = async () => {
     });
     const userLogin = await userLoginRes.json();
     if (userLoginRes.status === 200) {
-      userToken = userLogin.token;
+      userToken = userLogin.data.accessToken;
       logTest("User Login", true);
     } else {
       logTest("User Login", false, JSON.stringify(userLogin));
@@ -139,7 +142,7 @@ const runTests = async () => {
       headers: { "Authorization": `Bearer ${userToken}` }
     });
     const profile = await profileRes.json();
-    if (profileRes.status === 200 && profile.username === userUsername) {
+    if (profileRes.status === 200 && profile.data && profile.data.user && profile.data.user.username === userUsername) {
       logTest("Retrieve Profile", true);
     } else {
       logTest("Retrieve Profile", false, JSON.stringify(profile));
@@ -159,7 +162,7 @@ const runTests = async () => {
     });
     const team = await teamRes.json();
     if (teamRes.status === 201) {
-      teamId = team.team._id;
+      teamId = team.data.team.id;
       logTest("Create Team (Admin Only)", true);
     } else {
       logTest("Create Team (Admin Only)", false, JSON.stringify(team));
@@ -204,7 +207,7 @@ const runTests = async () => {
     });
     const createTask = await createTaskRes.json();
     if (createTaskRes.status === 201) {
-      taskId = createTask.task._id;
+      taskId = createTask.data.task.id;
       logTest("Create Task & Assign (Manager Scope Check)", true);
     } else {
       logTest("Create Task & Assign (Manager Scope Check)", false, JSON.stringify(createTask));
@@ -220,7 +223,7 @@ const runTests = async () => {
       body: JSON.stringify({
         title: "Illegal Assignment Task",
         dueDate: futureDate.toISOString(),
-        assignedTo: adminLogin.user._id // Admin is not in Manager's team
+        assignedTo: adminLogin.data.user.id // Admin is not in Manager's team
       })
     });
     const badAssign = await badAssignRes.json();
@@ -235,8 +238,8 @@ const runTests = async () => {
       headers: { "Authorization": `Bearer ${userToken}` }
     });
     const getAssigned = await getAssignedRes.json();
-    if (getAssignedRes.status === 200 && getAssigned.length > 0) {
-      logTest("Read Assigned Tasks", true, `Retrieved ${getAssigned.length} tasks`);
+    if (getAssignedRes.status === 200 && getAssigned.data && getAssigned.data.tasks && getAssigned.data.tasks.length > 0) {
+      logTest("Read Assigned Tasks", true, `Retrieved ${getAssigned.data.tasks.length} tasks`);
     } else {
       logTest("Read Assigned Tasks", false, JSON.stringify(getAssigned));
     }
@@ -271,7 +274,7 @@ const runTests = async () => {
       })
     });
     const userUpdateStatus = await userUpdateStatusRes.json();
-    if (userUpdateStatusRes.status === 200 && userUpdateStatus.task.status === "completed") {
+    if (userUpdateStatusRes.status === 200 && userUpdateStatus.data && userUpdateStatus.data.task && userUpdateStatus.data.task.status === "completed") {
       logTest("User Update Task Status", true);
     } else {
       logTest("User Update Task Status", false, JSON.stringify(userUpdateStatus));
@@ -282,8 +285,8 @@ const runTests = async () => {
       headers: { "Authorization": `Bearer ${adminToken}` }
     });
     const analyticsStatus = await analyticsStatusRes.json();
-    if (analyticsStatusRes.status === 200 && analyticsStatus.completed >= 1) {
-      logTest("Fetch Status Analytics", true, `Completed: ${analyticsStatus.completed}, Pending: ${analyticsStatus.pending}`);
+    if (analyticsStatusRes.status === 200 && analyticsStatus.data && analyticsStatus.data.completed >= 1) {
+      logTest("Fetch Status Analytics", true, `Completed: ${analyticsStatus.data.completed}, Pending: ${analyticsStatus.data.pending}`);
     } else {
       logTest("Fetch Status Analytics", false, JSON.stringify(analyticsStatus));
     }
@@ -293,8 +296,8 @@ const runTests = async () => {
       headers: { "Authorization": `Bearer ${adminToken}` }
     });
     const analyticsStats = await analyticsStatsRes.json();
-    if (analyticsStatsRes.status === 200 && analyticsStats.byTeam.length > 0) {
-      logTest("Fetch Statistics Analytics", true, `Team counts loaded: ${analyticsStats.byTeam.length}`);
+    if (analyticsStatsRes.status === 200 && analyticsStats.data && analyticsStats.data.byTeam && analyticsStats.data.byTeam.length > 0) {
+      logTest("Fetch Statistics Analytics", true, `Team counts loaded: ${analyticsStats.data.byTeam.length}`);
     } else {
       logTest("Fetch Statistics Analytics", false, JSON.stringify(analyticsStats));
     }
@@ -302,7 +305,13 @@ const runTests = async () => {
     // 17. User Logout
     const logoutRes = await fetch(`${BASE_URL}/auth/logout`, {
       method: "POST",
-      headers: { "Authorization": `Bearer ${userToken}` }
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${userToken}`
+      },
+      body: JSON.stringify({
+        refreshToken: userLogin.data.refreshToken
+      })
     });
     const logout = await logoutRes.json();
     if (logoutRes.status === 200) {

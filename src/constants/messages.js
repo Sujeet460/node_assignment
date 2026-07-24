@@ -32,6 +32,7 @@ export const MESSAGES = {
     DELETED: "Task deleted successfully",
     ASSIGNED: "Task assigned successfully",
     NOT_FOUND: "Task not found",
+    ALREADY_ASSIGNED: "Task is already assigned to this user",
     ASSIGN_FORBIDDEN_MANAGER: "Forbidden: Managers can only assign tasks to team members",
     ASSIGN_FORBIDDEN_USER: "Forbidden: Users can only assign tasks to themselves",
     MODIFY_FORBIDDEN: "Forbidden: Access denied to modify this task",

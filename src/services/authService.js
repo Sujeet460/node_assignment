@@ -10,6 +10,7 @@ import { ROLES } from "../constants/roles.js";
 import { userDTO } from "../dto/user.dto.js";
 import * as cacheService from "./cacheService.js";
 import { sendConfirmationEmail } from "./emailService.js";
+import { sendOtp } from "./otpService.js";
 
 const register = async (userData, caller) => {
   const { username, email, password, role } = userData;
@@ -51,8 +52,7 @@ const register = async (userData, caller) => {
     if (isAdminCreated) {
       sendConfirmationEmail(normalizedEmail, username);
     } else {
-      const otpService = (await import("./otpService.js")).default;
-      await otpService.sendOtp(normalizedEmail);
+      await sendOtp(normalizedEmail);
     }
 
     return userDTO(newUser);
@@ -77,8 +77,7 @@ const login = async (loginData) => {
   }
 
   if (!user.isVerified) {
-    const otpService = (await import("./otpService.js")).default;
-    await otpService.sendOtp(user.email);
+    await sendOtp(user.email);
     throw new ApiError(
       HTTP_STATUS.FORBIDDEN,
       "Please verify your email first. A new OTP has been sent."

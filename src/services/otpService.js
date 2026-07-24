@@ -52,7 +52,7 @@ const verifyOtp = async (email, code) => {
   return userDTO(user);
 };
 
-export default {
+export {
   sendOtp,
   verifyOtp,
 };

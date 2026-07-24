@@ -277,6 +277,19 @@ describe("Task Management API Integration Tests", () => {
       expect(res.body.data.tasks.length).toBeGreaterThan(0);
     });
 
+    it("should block reassigning a task to the same user", async () => {
+      const res = await request(app)
+        .patch(`/api/tasks/${taskId}/assign`)
+        .set("Authorization", `Bearer ${managerToken}`)
+        .send({
+          assignedTo: userId,
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe("Task is already assigned to this user");
+    });
+
     it("should deny standard User from updating task details (RBAC check)", async () => {
       const res = await request(app)
         .put(`/api/tasks/${taskId}`)

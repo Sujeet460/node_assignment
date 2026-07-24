@@ -260,6 +260,15 @@ const assignTask = async (id, assignedTo, currentUser) => {
     throw new ApiError(HTTP_STATUS.NOT_FOUND, MESSAGES.TASK.NOT_FOUND);
   }
 
+  if (task.assignedTo) {
+    const currentAssigneeId = task.assignedTo._id 
+      ? task.assignedTo._id.toString() 
+      : task.assignedTo.toString();
+    if (currentAssigneeId === assignedTo.toString()) {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, MESSAGES.TASK.ALREADY_ASSIGNED);
+    }
+  }
+
   const assignee = await userRepository.findById(assignedTo);
   if (!assignee) {
     throw new ApiError(HTTP_STATUS.NOT_FOUND, "User to assign not found");

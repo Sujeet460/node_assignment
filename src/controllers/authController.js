@@ -1,6 +1,6 @@
 import authService from "../services/authService.js";
 import userService from "../services/userService.js";
-import otpService from "../services/otpService.js";
+import * as otpService from "../services/otpService.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { HTTP_STATUS } from "../constants/httpStatus.js";
 import { MESSAGES } from "../constants/messages.js";
